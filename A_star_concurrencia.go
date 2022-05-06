@@ -268,8 +268,8 @@ func main() {
 		sortNodes()
 	}
 
-	fmt.Println("Posiciones revisadas")
-	printMaze(maze)
+	/*fmt.Println("Posiciones revisadas")
+	printMaze(maze)*/
 
 	fmt.Println("Camino encontrado")
 	if found {

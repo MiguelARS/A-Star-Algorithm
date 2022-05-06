@@ -193,6 +193,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	rowNumber = len(maze)
 	columnNumber = len(maze[0])
+	start := time.Now()
 
 	x, y := getRandomPointInMaze()
 	maze[x][y] = 2
@@ -225,4 +226,6 @@ func main() {
 		}
 	}
 	printMaze(tracedPathMap)
+	elapsed := time.Since(start)
+	fmt.Printf("Tomo %s\n", elapsed)
 }
