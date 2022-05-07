@@ -10,10 +10,10 @@ import (
 type Node struct {
 	x int
 	y int
-	h int
-	w int
-	g int
-	p [][]int
+	h int // Costo estimado desde un nodo n hasta el nodo final u objetivo.
+	g int // Costo exacto de la ruta desde el nodo inicial a cualquier nodo n.
+	f int // Costo mínimo del nodo vecino.
+	p [][]int // Arreglos de nodos recorridos hasta este nodo.
 }
 
 type Point struct {
@@ -50,9 +50,10 @@ var maze [][]int = [][]int{
 }
 
 func sortNodes() {
+	// se ordena asc de acuerdo al f.
 	sort.Slice(openNodes[:], func(i, j int) bool {
-		if openNodes[i].g != openNodes[j].g {
-			return openNodes[i].g < openNodes[j].g
+		if openNodes[i].f != openNodes[j].f {
+			return openNodes[i].f < openNodes[j].f
 		} else {
 			return openNodes[i].h < openNodes[j].h
 		}
@@ -68,13 +69,13 @@ func calculateHeuristic(x, y, xf, yf int) int {
 	if ty < 0 {
 		ty *= -1
 	}
-	t := tx + ty
+	t := tx + ty // Costo estimado desde un nodo A hasta el nodo B.
 	return t
 }
 
 func findTheWay(xf, yf int) bool {
 	currentNode := openNodes[0]
-	w := currentNode.w + 1
+	g := currentNode.g + 1 // el costo para moverse es uno.
 	x := currentNode.x
 	y := currentNode.y
 	p := currentNode.p
@@ -90,32 +91,33 @@ func findTheWay(xf, yf int) bool {
 
 	for _, point := range neighborDirections {
 		h := calculateHeuristic(point.x, point.y, xf, yf)
-		g := h + w
-		addOrUpdateNode(point, h, w, g, p)
+		f := h + g
+		addOrUpdateNode(point, h, g, f, p)
 		maze[point.x][point.y] = 2
 	}
 
-	sortNodes()
+	sortNodes() // se ordena asc de acuerdo al f.
 	if len(openNodes) == 0 {
-		return true
+		return true // no se encontró solución.
 	}
 	return false
 }
 
-func addOrUpdateNode(point Point, h int, w int, g int, p [][]int) {
+func addOrUpdateNode(point Point, h int, g int, f int, p [][]int) {
 	for _, node := range openNodes {
+		// Se actualiza los valores de los nodos abiertos respecto al nuevo punto
 		if node.x == point.x && node.y == point.y {
-			if node.g < g {
+			if f < node.f {
 				node.h = h
-				node.w = w
 				node.g = g
+				node.f = f
 				node.p = p
 				return
 			}
 		}
 	}
 
-	var newNode = Node{point.x, point.y, h, w, g, p}
+	var newNode = Node{point.x, point.y, h, g, f, p}
 	openNodes = append(openNodes, newNode)
 }
 
@@ -191,9 +193,9 @@ func addObstacles(x, y, xf, yf, numberOfObstacles int) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	startTime := time.Now()
 	rowNumber = len(maze)
 	columnNumber = len(maze[0])
-	start := time.Now()
 
 	x, y := getRandomPointInMaze()
 	maze[x][y] = 2
@@ -226,6 +228,6 @@ func main() {
 		}
 	}
 	printMaze(tracedPathMap)
-	elapsed := time.Since(start)
-	fmt.Printf("Tomo %s\n", elapsed)
+	elapsed := time.Since(startTime)
+	fmt.Printf("Tomó %s\n", elapsed)
 }

@@ -11,10 +11,10 @@ import (
 type Node struct {
 	x int
 	y int
-	h int
-	w int
-	g int
-	p [][]int
+	h int // Costo estimado desde un nodo n hasta el nodo final u objetivo.
+	g int // Costo exacto de la ruta desde el nodo inicial a cualquier nodo n.
+	f int // Costo mínimo del nodo vecino.
+	p [][]int // Arreglos de nodos recorridos hasta este nodo.
 }
 
 type Point struct {
@@ -25,8 +25,8 @@ type Point struct {
 var rowNumber int
 var columnNumber int
 
-var openNodes []Node
-var closedPoints []Point
+var openNodes []Node // Nodos que se están evaluando
+var closedPoints []Point // Nodos que se visitaron
 
 var maze [][]int = [][]int{
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -52,6 +52,7 @@ var maze [][]int = [][]int{
 }
 
 func sortNodes() {
+	// se ordena asc de acuerdo al f.
 	sort.Slice(openNodes[:], func(i, j int) bool {
 		if openNodes[i].g != openNodes[j].g {
 			return openNodes[i].g < openNodes[j].g
@@ -70,20 +71,19 @@ func calculateHeuristic(x, y, xf, yf int) int {
 	if ty < 0 {
 		ty *= -1
 	}
-	t := tx + ty
+	t := tx + ty // Costo estimado desde un nodo A hasta el nodo B.
 	return t
 }
 
 func findTheWay(xf, yf, index int, doChan chan struct{}, doChannelFound chan struct{}) {
 	currentNode := openNodes[index]
-	w := currentNode.w + 1
+	w := currentNode.g + 1 // el costo para movese es uno.
 	x := currentNode.x
 	y := currentNode.y
 	p := currentNode.p
-	// p = append(p, []int{x, y})
 	maze[x][y] = 2
 
-	closedPoints = append(closedPoints, Point{x, y})
+	closedPoints = append(closedPoints, Point{x, y}) // se va guardando los nodos visitados
 
 	if currentNode.x == xf && currentNode.y == yf {
 		doChannelFound <- struct{}{}
@@ -117,7 +117,7 @@ func addOrUpdateNode(point Point, h int, w int, g int, p [][]int) {
 		if node.x == point.x && node.y == point.y {
 			if node.g < g {
 				node.h = h
-				node.w = w
+				node.g = w
 				node.g = g
 				node.p = newP
 				return
@@ -214,7 +214,7 @@ func addObstacles(x, y, xf, yf, numberOfObstacles int) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano()) //Semilla diferente para que cada vez que se ejecute
 	start := time.Now()
 	rowNumber = len(maze)
 	columnNumber = len(maze[0])
@@ -234,19 +234,19 @@ func main() {
 	node := Node{x, y, 0, 0, 0, [][]int{}}
 	openNodes = append(openNodes, node)
 
-	doChan := make(chan struct{})
-	doFound := make(chan struct{})
+	doChan := make(chan struct{}) // canal por donde se avisa que terminó la evaluación
+	doFound := make(chan struct{}) // canal por donde se avisa que se encontró el camino
 	found := false
 	for {
 		start := len(openNodes)
 		if start > 5 {
 			start = 5
 		}
-		for i := 0; i < start; i++ {
+		for i := 0; i < start; i++ { // se itera como máximo sobre los 5 nodos con menor f.
 			go findTheWay(xf, yf, i, doChan, doFound)
 		}
 
-		finish := 0
+		finish := 0 //se cuenta cuantos procesos han terminado
 		for finish < start {
 			select {
 			case <-doFound:
@@ -260,7 +260,7 @@ func main() {
 		if found {
 			break
 		}
-		openNodes = openNodes[finish:]
+		openNodes = openNodes[finish:] // los que ya evaluó los descarta porq ya no está open
 		if len(openNodes) == 0 {
 			break
 		}
@@ -268,8 +268,8 @@ func main() {
 		sortNodes()
 	}
 
-	/*fmt.Println("Posiciones revisadas")
-	printMaze(maze)*/
+	fmt.Println("Posiciones revisadas")
+	printMaze(maze)
 
 	fmt.Println("Camino encontrado")
 	if found {
@@ -282,6 +282,6 @@ func main() {
 		fmt.Println("No se encontro el camino")
 	}
 	printMaze(tracedPathMap)
-	elapsed := time.Since(start)
+	elapsed := time.Since(start) //Tiempo que duró todo este proceso
 	fmt.Printf("Tomo %s\n", elapsed)
 }
